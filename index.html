@@ -72,6 +72,63 @@
 
 <article>
   <header>
+    <h2><a href="https://ajya.github.io/outreachy-about-the-project.html#outreachy-about-the-project">Outreachy: About the project</a></h2>
+    <p>
+          Posted on Tue 05 June 2018
+
+
+          &#8226;     Tagged with
+
+              <a href="https://ajya.github.io/tag/outreachy.html">outreachy</a>,              <a href="https://ajya.github.io/tag/openstack.html">openstack</a>
+    </p>
+  </header>
+  <div>
+      <p>When it came to choose a project for which to apply in Outreachy, I was looking for 3 things: mentors are in about the same timezone as me, the project is in tech stack I'm familiar with and want to expand my skills in it, and last but but not least, the project's domain is something interesting and completely new to me.</p>
+<p>With the last point I set myself up for a lot of reading (and some videos). </p>
+<p>At first I felt like that dog in meme 'I have no idea what I'm doing'. To wrap my head around this, I started to draw a picture with some boxes. Here is the result: </p>
+<p><img alt="diagram: Context of sushy" src="https://ajya.github.io/images/project_overview.png"></p>
+<p>The project I'm working on is <code>sushy</code> and <code>sushy-tools</code> project. </p>
+<p><code>sushy</code> is related to, but not exactly part of, OpenStack Ironic project which deals with bare metal provisioning. Usually when talking about clouds, talk about virtual machines (VM), but there are cases where VMs do not provide necessary performance, so non-virtualized environment is necessary. Here comes Ironic project to manage bare metal servers in cloud environment - remotely. Ironic can be used independently or together with other OpenStack projects with whom it integrates. <code>sushy</code> is written in a way that it does not depend on Ironic and can be used by other projects. And Ironic can decide to use something else instead of <code>sushy</code>. But what does <code>sushy</code> do? Time to introduce Redfish. </p>
+<p>Redfish is a standard API to work with bare metal servers. It lives in BMC (Baseboard Management Controller) which is a microcontroller (small computer) attached to motherboard of industrial servers. BMC allows to manage servers remotely and Redfish is one of the protocols to do it. The Redfish standard is managed by DMTF (Distributed Management Task Force).</p>
+<p><code>sushy</code> is a client library in Python for Redfish RESTful web services communicating in JSON. <code>ironic</code> imports <code>sushy</code> and uses it as one of the drivers.
+<code>sushy</code> is not the only Python library to consume Redfish API, there are alternatives named very similarly:
+python-redfish <a href="https://github.com/openstack/python-redfish">[5]</a>
+python-redfish-library <a href="https://github.com/DMTF/python-redfish-library">[6]</a></p>
+<p>Besides <code>sushy</code> there is also project <code>sushy-tools</code> which contains emulators for testing <code>sushy</code>. Otherwise it is challenging for developers to test Redfish as real server with BMC and Redfish is necessary. There are 2 emulators:
+<code>sushy-static</code> which serves static JSON files provided by Redfish project. Mockups can be found at White Papers and Technical Notes section<a href="https://www.dmtf.org/standards/redfish">[4]</a> looking for DSP2043. There is Redfish Mockup Creator<a href="https://github.com/DMTF/Redfish-Mockup-Creator">[7]</a> to generate mockup files from a real Redfish service. But this is little use to me as I don't have access to real Redfish service, but nice to know just in case.</p>
+<p>Static mockup file emulator is OK for read only testing, but it does not help much when want to test actions where some changes are necessary. In this case there is <code>sushy-emulator</code> which uses <code>libvirt</code> driver connecting to virtual machine mimicking real server. </p>
+<p>DMTF also provides similar emulators, both static mockup files<a href="https://github.com/DMTF/Redfish-Mockup-Server">[8]</a> and dynamic<a href="https://github.com/DMTF/Redfish-Interface-Emulator">[9]</a>. I haven't tried these yet, but might try them out later.
+With all the alternatives available, it appears that each project takes different approach, so it is not like they are copies of each other and in the end there is choice.</p>
+<p>Lastly, there are some acronyms that I've seen floating around in relation to Ironic that are not directly related to sushy, but I had to find out what they are and how they are related.</p>
+<p>PXE (Preboot eXecution Environment) is way to boot up servers from network. Computers supporting PXE has NIC (network interface controller) that is up and listening to commands from network even when server itself is turned off.</p>
+<p>IPMI (Intelligent Platform Management Interface) is a way how to manage and monitor servers remotely. </p>
+<p>PXE and IPMI have been used together to deploy servers, but they are supposed to be replaced by newer technologies addressing some of their drawbacks - HTTP Boot and Redfish <a href="https://www.youtube.com/watch?v=L-DQKEHX81Q">[10]</a>.</p>
+<p><code>libvirt</code>, already mentioned above, is API to manage virtualization, supporting wide range of hypervisors, including VirtualBox, VMWare, Hyper-V.</p>
+<p>As always, in hindsight this all speaks for itself, but then again while writing this I discovered new places to go though I can avoid them now - this is just enough for <code>sushy</code>. It will be interesting to revisit this at the end of project and see what has changed in my point of view.</p>
+<p>Next time I will write about first tasks I'm working on that should allow me to tell more about <code>sushy</code> and Redfish.</p>
+<ul>
+<li>[1] <a href="https://wiki.openstack.org/wiki/Ironic">Ironic project wiki - openstack.org</a></li>
+<li>[2] <a href="https://wiki.openstack.org/wiki/Ironic">Ironic User Guide - openstack.org</a></li>
+<li>[3] <a href="https://docs.openstack.org/sushy/latest/">Sushy documentation - openstack.org</a></li>
+<li>[4] <a href="https://www.dmtf.org/standards/redfish">Redfish API docs - dmtf.org</a></li>
+<li>[5] <a href="https://github.com/openstack/python-redfish">python-redfish - github.com</a></li>
+<li>[6] <a href="https://github.com/DMTF/python-redfish-library">python-redfish-library - github.com</a></li>
+<li>[7] <a href="https://github.com/DMTF/Redfish-Mockup-Creator">Redfish Mockup Creator - github.com</a></li>
+<li>[8] <a href="https://github.com/DMTF/Redfish-Mockup-Server">Redfish Mockup Server - github.com</a> </li>
+<li>[9] <a href="https://github.com/DMTF/Redfish-Interface-Emulator">Redfish Interface Emulator - github.com</a></li>
+<li>[10] <a href="https://www.youtube.com/watch?v=L-DQKEHX81Q">Talk from 2015 UEFI Plugfest. Firmware in the Data Center: Goodbye PXE and IPMI. Welcome HTTP Boot and Redfish! - youtube.com</a></li>
+<li>[11] <a href="https://redfish.dmtf.org/redfish/v1">In-browser Mockup file explorer -  dmtf.org</a></li>
+<li>[12] <a href="https://redfish.dmtf.org/webinars">Intro videos about Redfish API - dmtf.org</a></li>
+<li>[13] <a href="https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface#Baseboard_management_controller">BMC - wikipedia.org</a></li>
+<li>[14] <a href="https://en.wikipedia.org/wiki/Microcontroller">Microcontroller - wikipedia.org</a></li>
+<li>[15] <a href="https://en.wikipedia.org/wiki/Preboot_Execution_Environment">Preboot Execution Environment - wikipedia.org</a></li>
+<li>[16] <a href="https://en.wikipedia.org/wiki/Libvirt">Libvirt - wikipedia.org</a></li>
+</ul>
+  </div>
+  <hr />
+</article>
+<article>
+  <header>
     <h2><a href="https://ajya.github.io/outreachy-how-i-got-started-with-openstack-development.html#outreachy-how-i-got-started-with-openstack-development">Outreachy: How I got started with OpenStack development</a></h2>
     <p>
           Posted on Sun 20 May 2018
