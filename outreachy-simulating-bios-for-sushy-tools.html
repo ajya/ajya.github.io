@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="" />
+
+  <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,400italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" type="text/css" href="https://ajya.github.io/theme/stylesheet/style.min.css">
+
+  <link rel="stylesheet" type="text/css" href="https://ajya.github.io/theme/pygments/github.min.css">
+  <link rel="stylesheet" type="text/css" href="https://ajya.github.io/theme/font-awesome/css/font-awesome.min.css">
+
+
+
+    <link href="https://ajya.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate" title="The Blog RSS">
+
+
+
+
+<meta name="author" content="ajya" />
+<meta name="description" content="I can&#39;t believe that another 2 weeks have passed since the last blog post. Shortly after my previous blog post about adding support for BIOS resource in sushy library it got merged \o/. The next thing was to add BIOS support for sushy-tools so that developers can use it during …" />
+<meta name="keywords" content="outreachy, openstack">
+
+<meta property="og:site_name" content="The Blog"/>
+<meta property="og:title" content="Outreachy: Simulating BIOS for sushy-tools"/>
+<meta property="og:description" content="I can&#39;t believe that another 2 weeks have passed since the last blog post. Shortly after my previous blog post about adding support for BIOS resource in sushy library it got merged \o/. The next thing was to add BIOS support for sushy-tools so that developers can use it during …"/>
+<meta property="og:locale" content="en_US"/>
+<meta property="og:url" content="https://ajya.github.io/outreachy-simulating-bios-for-sushy-tools.html"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2018-07-08 18:00:00+03:00"/>
+<meta property="article:modified_time" content=""/>
+<meta property="article:author" content="https://ajya.github.io/author/ajya.html">
+<meta property="article:section" content="misc"/>
+<meta property="article:tag" content="outreachy"/>
+<meta property="article:tag" content="openstack"/>
+<meta property="og:image" content="">
+
+  <title>The Blog &ndash; Outreachy: Simulating BIOS for sushy-tools</title>
+
+</head>
+<body>
+  <aside>
+    <div>
+      <h1><a href="https://ajya.github.io">The Blog</a></h1>
+
+
+      <nav>
+        <ul class="list">
+
+          <li><a href="https://www.outreachy.org/" target="_blank">Outreachy</a></li>
+          <li><a href="https://www.openstack.org" target="_blank">OpenStack</a></li>
+        </ul>
+      </nav>
+
+      <h6 style="margin-bottom:0;">Contact me</h6>
+      <ul class="list">
+	<li>IRC freenode: ajya</li>
+	<li>Matrix: @ajya:matrix.org</li>
+      </ul>
+
+      <ul class="list">
+	<a href="https://ajya.github.io/feeds/all.rss.xml">    RSS
+</a>
+      </ul>
+
+      <ul class="social">
+      </ul>
+    </div>
+
+
+  </aside>
+  <main>
+
+
+<article class="single">
+  <header>
+      
+    <h1 id="outreachy-simulating-bios-for-sushy-tools">Outreachy: Simulating BIOS for sushy-tools</h1>
+    <p>
+          Posted on Sun 08 July 2018
+
+
+    </p>
+  </header>
+
+
+  <div>
+    <p>I can't believe that another 2 weeks have passed since the last blog post.
+Shortly after my previous blog post about adding support for BIOS resource in <code>sushy</code> library it got merged \o/. The next thing was to add BIOS support for <code>sushy-tools</code> so that developers can use it during development to test against as bare metals with Redfish are not readily available. Also <code>sushy-tools</code> could be used in CI when running automated tests. There is another developer working on adding BIOS-Redfish support in Ironic.</p>
+<p>To re-iterate on <code>sushy-tools</code>, it consists of two simulators <code>sushy-static</code> and <code>sushy-emulator</code>, Sushy static is straightforward - it serves JSON files from provided mockup folder where mockup files can be downloaded from DMTF Redfish page. Whatever is in those JSON files, is returned back to client. <code>sushy-emulator</code> is more dynamic and uses actual systems to emulate what is necessary for Redfish API. Now it supports 2 drivers - libvirt<a href="https://libvirt.org/">[1]</a> and openstacksdk<a href="https://docs.openstack.org/openstacksdk/latest/">[2]</a> (interchangeably also called nova driver).</p>
+<p>And to re-iterate on Redfish BIOS resource - it provides BIOS attributes, updating those attributes, resetting the attributes to default and changing BIOS password.</p>
+<p>I started to look at implementing BIOS support and writing up a story for storyboard, but stopped when decided to check what there is for libvirt and openstacksdk in relation to BIOS. Because at first I made assumption that there would be some API functions in libvirt and openstack libraries same as there were for parts already implemented. tl;dr; There is none.</p>
+<p>Browsing through libvirt and openstack sdk I couldn't see anything that stand out as BIOS API.
+Ok, so maybe there is nothing for BIOS, but maybe I don't know what I'm looking for (I don't have much experience with BIOS - as a computer user I have accessed BIOS to change boot order and enable hardware virtualization, if there was anything else I don't remember it). What are these "BIOS attributes"? Looking at the samples provided by DMTF, there are attributes like 'AdminPhone', 'BootMode', 'PowerProfile', 'UsbControl'. I take a look at my BIOS and cannot map these, probably there is something like that, but named slightly different (not expecting to see AdminPhone though).
+Still I don't want this let go, and I want to find out how this should work on real servers that support Redfish.</p>
+<p>This presentation<a href="https://www.dmtf.org/sites/default/files/Dong_Wei_UEFI_APTS2017.pdf">[3]</a> comes handy and introduces me to UEFI HII (Human Interface Infrastructure) which would be the source for UEFI variables mapped to Redfish BIOS attributes. I read more about it at<a href="https://uefi.blogspot.com/2009/09/uefi-hii-part-1.html">[4]</a> and then go back to libvirt. For openstacksdk it is already clear that there is nothing for BIOS.</p>
+<p>A side note, here I'm not looking at legacy BIOS, but UEFI. BIOS is being replaced by UEFI and one day will be gone, however its name still will live in Redfish, Ironic and elsewhere, because at least for Ironic this name is chosen as better cannot be identified<a href="https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/generic-bios-config.html#proposed-change">[5]</a>.</p>
+<p>Back to libvirt, I find that for virtual machines' UEFI, the term OVMF or AAVMF is used<a href="http://blog.wikichoon.com/2016/01/uefi-support-in-virt-install-and-virt.html">[6]</a>. Start searching using OVMF, find a doc about it, go through it<a href="http://www.linux-kvm.org/downloads/lersek/ovmf-whitepaper-c770f8c.txt">[7]</a>, and there it mentions NVRAM config file that contains something and my mentor had mentioned it. I need to take a look what is there. I create a VM with UEFI/OVMF<a href="https://fedoraproject.org/wiki/Using_UEFI_with_QEMU">[8]</a> and get the sample file. Its extension is '.fd' and it's binary file. I try to find if there is some utility to read just to see if something useful is there. Couldn't find it, and even if there is such, it is not part of libvirt API - so <code>sushy-emulator</code> would bypass libvirt API and would have to work with it directly which is not ideal.</p>
+<p>OK, here I give up and look at backup plan - have a set of string mimicking BIOS attributes with no effect on VM and stored at libvirt domain XML so that it is persisted between VM and sushy-tools reboots. Where would that be? I cannot find a place for it, but there is section named SMBIOS<a href="https://libvirt.org/formatdomain.html#elementsSysinfo">[9]</a> in libvirt.</p>
+<blockquote>
+<p>System Management BIOS (SMBIOS) specification defines data structures (and access methods) that can be used to read management information produced by the BIOS of a computer</p>
+</blockquote>
+<p>Sounds close enough? SBMBIOS has section <code>oemStrings</code> where it can store custom information. But it is added in the latest version released this spring, even I don't have it on my a little bit outdated Fedora (I will upgrade when Outreachy is over :)). And still this is not ideal place for custom data.
+Talk with mentors and then we decide that we will start with storing this in emulator's memory that would not be persisted accross reboots. I promise to take another look if really, really there is nothing better in libvirt.
+Next time I look and start reading the XML spec from the very beginning (not looking at table of contents which I did before) and here it is - under General data section, there is <code>metadata</code> section that allows to store whatever is necessary using own XML namespace. That is the perfect place for what we need.</p>
+<p>There were some other obstacles before I could get to implementing this - due to Flask upgrade tests started to fail in <code>sushy-tools</code> and I tried to fix it (that would be another paragraph about this, but I'm leaving this out so the blog post does not get too long). Once I got back to implementation I did it in less than a day, but there were and still are other patches for sushy-tools which introduce new and restructure existing tests with which I need to align. After the direction to go was clarified I updated my tests.<br>
+As of writing this, the patch is submitted and fails CI jobs.<br>
+I fixed the first time it failed CI - it was concurrency issue which was not visible locally because I had <code>libvirtd</code> running. I stopped the service and was able to reproduce the test failures. But only when I run full test suite. When I tried to isolate the issue, the tests passed. I found the missing piece and fixed my test setup (had to nullify global driver) and it passed again, but then CI failed again with different errors. Perhaps more concurrency issues, suspecting global variable (everything fine locally).</p>
+<p>Overall, it does not feel like already 2 weeks have passed but when I start writing about it a lot of interruptive things come up which I will leave out for brevity. One thing that stands out for me is that I was not noticing some things that I feel I should have. Better attention next time. The good thing - when I was researching UEFI BIOS thing I remembered about and used the Pomodoro technique<a href="https://en.wikipedia.org/wiki/Pomodoro_Technique">[10]</a> with Gnome app<a href="http://gnomepomodoro.org/">[11]</a> to keep myself focused. Worked flawlessly.</p>
+<ul>
+<li>[1] <a href="https://libvirt.org/">Libivrt - libvirt.org</a></li>
+<li>[2] <a href="https://docs.openstack.org/openstacksdk/latest/">openstacksdk - openstack.org</a></li>
+<li>[3] <a href="https://www.dmtf.org/sites/default/files/Dong_Wei_UEFI_APTS2017.pdf">Overview of the UEFI Forum - dmtf.org</a></li>
+<li>[4] <a href="https://uefi.blogspot.com/2009/09/uefi-hii-part-1.html">UEFI HII (Part 1) - uefi.blogspot.com</a> </li>
+<li>[5] <a href="https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/generic-bios-config.html#proposed-change">Hardware interface for BIOS configuration, Proposed change - openstack.org</a></li>
+<li>[6] <a href="http://blog.wikichoon.com/2016/01/uefi-support-in-virt-install-and-virt.html">UEFI support in virt-install and virt-manager - blog.wikichoon.com</a></li>
+<li>[7] <a href="http://www.linux-kvm.org/downloads/lersek/ovmf-whitepaper-c770f8c.txt">Open Virtual Machine Firmware (OVMF) Status Report - linux-kvm.org</a></li>
+<li>[8] <a href="https://fedoraproject.org/wiki/Using_UEFI_with_QEMU">Using UEFI with QEMU - fedoraproject.org</a></li>
+<li>[9] <a href="https://libvirt.org/formatdomain.html#elementsSysinfo">SMBIOS System Information - libvirt.org</a></li>
+<li>[10] <a href="https://en.wikipedia.org/wiki/Pomodoro_Technique">Pomodor Technique - wikipedia.org</a></li>
+<li>[11] <a href="http://gnomepomodoro.org/">Gnome Pomodoro</a></li>
+</ul>
+  </div>
+  <div class="tag-cloud">
+    <p>
+      <a href="https://ajya.github.io/tag/outreachy.html">outreachy</a>
+      <a href="https://ajya.github.io/tag/openstack.html">openstack</a>
+    </p>
+  </div>
+
+
+
+
+
+</article>
+
+    <footer>
+<p>&copy; ajya </p>
+<p>    Powered by <a href="http://getpelican.com" target="_blank">Pelican</a> - <a href="https://github.com/alexandrevicenzi/flex" target="_blank">Flex</a> theme by <a href="http://alexandrevicenzi.com" target="_blank">Alexandre Vicenzi</a>
+</p>    </footer>
+  </main>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context" : "http://schema.org",
+  "@type" : "Blog",
+  "name": " The Blog ",
+  "url" : "https://ajya.github.io",
+  "image": "",
+  "description": ""
+}
+</script>
+
+</body>
+</html>
