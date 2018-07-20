@@ -73,6 +73,54 @@
 
 <article>
   <header>
+    <h2><a href="https://ajya.github.io/outreachy-redfish-message-registry-and-other.html#outreachy-redfish-message-registry-and-other">Outreachy: Redfish Message registry and other</a></h2>
+    <p>
+          Posted on Fri 20 July 2018
+
+
+          &#8226;     Tagged with
+
+              <a href="https://ajya.github.io/tag/outreachy.html">outreachy</a>,              <a href="https://ajya.github.io/tag/openstack.html">openstack</a>
+    </p>
+  </header>
+  <div>
+      <p>This time I will not act surprised that 2 more weeks have passed because I paid attention to time passing by.</p>
+<p>In my previous blog post I mentioned that my last patch was failing CI. It turned out that the function <code>assert_called_once</code> is missing in Python 3.5. (it has <code>assert_called_once_with</code> though, but I can't use it this time). Locally I run Python 3.6 where this function is back, and there were no issues in Python 2.7. I replaced this with asserting <code>call_count</code> for now, but this patch still has to pass code reviews.</p>
+<p>With that patch put in code review all green, I returned to <code>@Redfish.Settings</code> that had parts left out previously because of too many things that still required clarification. As it stands now, sushy users can update BIOS attributes, but for now sushy does not expose the status of this update.
+To get the ball rolling I started to write some code and encountered another dependency - Message Registries. In Redfish response there would be id-s of messages, e.g., <code>Base.1.2.Success</code>, <code>Base.1.2.PropertyValueTypeError</code> and in registry file <code>Base.1.2.0.json</code> that would correspond to section like this<a href="http://redfish.dmtf.org/schemas/registries/Base.1.2.0.json">[1]</a>:</p>
+<div class="highlight"><pre><span></span><span class="s2">&quot;PropertyValueTypeError&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;Description&quot;</span><span class="o">:</span> <span class="s2">&quot;Indicates that a property was given the wrong value type, such as when a number is supplied for a property that requires a string.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Message&quot;</span><span class="o">:</span> <span class="s2">&quot;The value %1 for the property %2 is of a different type than the property can accept.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Severity&quot;</span><span class="o">:</span> <span class="s2">&quot;Warning&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NumberOfArgs&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;ParamTypes&quot;</span><span class="o">:</span> <span class="p">[</span>
+        <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;string&quot;</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;Resolution&quot;</span><span class="o">:</span> <span class="s2">&quot;Correct the value for the property in the request body and resubmit the request if the operation failed.&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>In order to determine if update is successful need to consult the registry and give user some friendly message. In the given sample above the message supports templates and it has placeholders for parameters. sushy would have to build an error message passing the parameters from <code>@Redfish.Settings</code> for specific case. This approach also supports translating and localizing the messages. But for all this to work I need the registries. None of the provided mockup files have sample of these registries included. According to the schema they can be provided via <code>ServiceRoot.Registry</code> property. I remember somewhere I read that they are optional, but then how should sushy handle the case where Redfish service does not provide them? There could be 2 options: download the files programmatically from <a href="http://redfish.dmtf.org/schemas/registries/">[2]</a> as necessary or include them in sushy package as fallback. Downloading the files wouldn't be a reliable option because sushy might not have access to the external Internet or the site could be just down. Bundling the files together is the direction to go, but then the mentor queried about the license of these files. These standard registry files provided by DMTF have only copyright statement, but no license. That would mean that this is proprietary and cannot be included in OpenStack projects as they require OSI approved license. No-one was sure and I'm not a lawyer either so it was time to contact OpenStack legal mailing list to clarify this<a href="https://wiki.openstack.org/wiki/LegalIssuesFAQ">[3]</a>. Before this I talked with the mentors what could be other options if the files couldn't be included - e.g., manually or using a script parse the files, generate a Python dict and store this derived dictionary instead of the original file.
+In the questions to legal mailing list I also included this approach as possible option. Pretty quickly an answer came back which said: NO, the files cannot be included without a license and the same goes for the derived code. As of this writing this is still on-going and DMTF might apply 3-clause BSD license which would be OK for OpenStack project<a href="https://governance.openstack.org/tc/reference/licensing.html">[4]</a>.</p>
+<p>On other tasks I did some cleanup patches that emerged from previous code reviews - what usually happens in code reviews is that reviewers notice other thing that need improvement but are not related to the patch in review. Or the necessity for changes is not so big to block the patch but can be done as a followup patch.
+One of those patches were to clean up sushy-tools documentation to consistently use the same term. Somehow the docs started to have 'simulator' to describe sushy-emulator and sushy-static. It might have been me because I though of 'simulator' to be more general term. Went through some discussions <a href="https://stackoverflow.com/questions/1584617/simulator-or-emulator-what-is-the-difference">[5]</a><a href="https://english.stackexchange.com/questions/111787/what-is-the-difference-between-simulate-and-emulate">[6]</a> to understand which is the right term to use. Turns out it is 'emulator'. Which also means that the title of my previous blog post is incorrect.</p>
+<p>Another thing, I took over a patch that emulated Ethernet Interfaces in sushy-emulator. It was rather an old patch from January this year and since it was created sushy-tools had introduced support for openstackdriver and thus changed some structure in the Flask app too. I rebased and updated with the new structure and added support for openstacksdk driver. Which led me to setting up OpenStack cloud locally. A bit funny, but I haven't had a need to have access to OpenStack cloud before. This time I needed a sample to see how openstacksdk returns data for network interfaces, which was not entirely clear from the docs. I used dev-stack<a href="https://docs.openstack.org/devstack/latest/">[7]</a> on a VM and it worked without any problems. This patch too is in code-review.</p>
+<ul>
+<li>[1] <a href="http://redfish.dmtf.org/schemas/registries/Base.1.2.0.json">Standard message registry, v.1.2.0</a></li>
+<li>[2] <a href="http://redfish.dmtf.org/schemas/registries/">Redfish registries - dmtf.org</a></li>
+<li>[3] <a href="https://wiki.openstack.org/wiki/LegalIssuesFAQ">Legal Issues FAQ - openstack.org</a></li>
+<li>[4] <a href="https://governance.openstack.org/tc/reference/licensing.html">Licensing requirements - openstack.org</a></li>
+<li>[5] <a href="https://stackoverflow.com/questions/1584617/simulator-or-emulator-what-is-the-difference">Simulator or Emulator? What is the difference? - stackoverflow.org</a></li>
+<li>[6] <a href="https://english.stackexchange.com/questions/111787/what-is-the-difference-between-simulate-and-emulate">What is the difference between “simulate” and “emulate”? - english.stackexchange.com</a></li>
+<li>[7] <a href="https://docs.openstack.org/devstack/latest/">DevStack - openstack.org</a></li>
+</ul>
+  </div>
+  <hr />
+</article>
+<article>
+  <header>
     <h2><a href="https://ajya.github.io/outreachy-simulating-bios-for-sushy-tools.html#outreachy-simulating-bios-for-sushy-tools">Outreachy: Simulating BIOS for sushy-tools</a></h2>
     <p>
           Posted on Sun 08 July 2018
